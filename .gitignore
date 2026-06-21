@@ -1,0 +1,10 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+.DS_Store
+build/
+DerivedData/
+
+# API Keys
+Info.plist
+GooglePlacesConfig.swift

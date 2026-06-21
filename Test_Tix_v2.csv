@@ -1,0 +1,11 @@
+ticketCode,attendeeName,attendeeEmail,ticketType,price,status,QR Code
+001,Harnish Patel,,VIP,,,
+002,John Doe,,MVP,$20,,
+003,Steve Smith,,BASIC,,,
+004,John Smith,,GENERAL,,,
+005,Jane Doe,,GENERAL,,,
+006,SRK,,BASIC,,,
+007,MS Dhoni,,TOP-G,,,
+008,Roko4Life,,TOP-G,,,
+009,,,,,,
+010,,,,,,
