@@ -1,10 +1,26 @@
 # Z-Tix
 
-Z-Tix is an iPhone event and ticket management app built with Swift, SwiftUI, and Xcode. It is designed for event organisers to create and manage events, import attendee tickets from CSV files, validate QR codes and barcodes at the door, and review scan history.
+Z-Tix is an iPhone event and ticket management app built with Swift and SwiftUI. It is designed for event organisers to create and manage events, import attendee tickets from CSV files, validate QR codes and barcodes at the door, and review scan history.
 
 The app uses Firebase Authentication for organiser accounts and Cloud Firestore for events, tickets, and scan logs. Firestore persistence and network monitoring support ticket lookup and queued writes when connectivity is limited. Profile picture metadata is stored locally with SwiftData, while the image itself is stored in the app's file system.
 
-## Main features
+---
+
+## Table of contents
+
+- [Features](#features)
+- [Technology](#technology)
+- [Prerequisites](#prerequisites)
+- [Directory structure](#directory-structure)
+- [Configuration](#configuration)
+- [Opening and running the app](#opening-and-running-the-app)
+- [Sample ticket import](#sample-ticket-import)
+- [Known limitations](#known-limitations)
+- [License](#license)
+
+---
+
+## Features
 
 - Organiser registration, sign-in, sign-out, and account management
 - Event creation, editing, listing, and deletion
@@ -16,19 +32,43 @@ The app uses Firebase Authentication for organiser accounts and Cloud Firestore 
 - Firestore caching and network-status awareness for limited offline operation
 - Locally stored, selectable, and croppable profile pictures
 
-The **Upgrade** screen and staff-user model are placeholders for planned functionality.
+---
 
 ## Technology
 
-- Swift 5 and SwiftUI
-- UIKit and AVFoundation for the camera scanner
-- SwiftData for local profile-picture metadata
-- Firebase Authentication, Cloud Firestore, and Firebase Storage through Swift Package Manager
-- Network framework for connectivity monitoring
-- PhotosUI for profile-picture selection
-- Google Places API for venue address suggestions
+| Layer | Frameworks / Services |
+|---|---|
+| UI | SwiftUI, UIKit (camera bridge) |
+| Camera | AVFoundation |
+| Local persistence | SwiftData |
+| Backend | Firebase Authentication, Cloud Firestore, Firebase Storage |
+| Networking | Network framework (connectivity monitoring) |
+| Photos | PhotosUI |
+| Maps / Places | Google Places API |
+| Dependency management | Swift Package Manager |
 
-The Xcode project currently targets iOS 18.5 and uses the bundle identifier `edu.monash.Z-Tix`.
+**Key dependency versions** (from `Package.resolved`):
+
+- Firebase iOS SDK 12.4.0
+- Google App Check 11.2.0
+
+The Xcode project targets **iOS 18.5** and uses the bundle identifier `edu.monash.Z-Tix`.
+
+---
+
+## Prerequisites
+
+| Tool | Minimum version |
+|---|---|
+| macOS | 15 Sequoia or later (required by Xcode 16) |
+| Xcode | 16.x |
+| iOS device / simulator | iOS 18.5 |
+| Firebase project | Authentication and Firestore enabled |
+| Google Cloud project | Places API enabled and an API key issued |
+
+A **physical iPhone** is required for the full experience. The simulator supports most screens but cannot exercise the camera-based ticket scanner.
+
+---
 
 ## Directory structure
 
@@ -75,24 +115,73 @@ The Xcode project currently targets iOS 18.5 and uses the bundle identifier `edu
 └── README.md
 ```
 
+### Domain models
+
 Views and view models are separated within most feature folders. The principal persisted models are:
 
-- `Event`: an organiser-owned event stored in Firestore
-- `Ticket`: an attendee ticket stored below its event in a `tickets` subcollection
-- `TicketScan`: a top-level audit record for a scan attempt
-- `OrganiserUser`: the organiser profile linked to a Firebase Authentication user
-- `ProfilePicture`: local SwiftData metadata pointing to an image on disk
-- `StaffUser`: a model reserved for a future staff-access feature
+| Model | Storage | Purpose |
+|---|---|---|
+| `Event` | Firestore | An organiser-owned event |
+| `Ticket` | Firestore (`tickets` subcollection) | An attendee ticket belonging to an event |
+| `TicketScan` | Firestore | Top-level audit record for a scan attempt |
+| `OrganiserUser` | Firestore | Organiser profile linked to a Firebase Auth user |
+| `ProfilePicture` | SwiftData + local filesystem | Metadata pointing to a profile image stored on disk |
+| `StaffUser` | — | Reserved for a future staff-access feature |
+
+---
+
+## Configuration
+
+Two local files are excluded from version control and must be supplied before building.
+
+### `Z-Tix/Info.plist`
+
+This is the standard iOS `Info.plist` for the app target. Create it in Xcode (**File › New › File › Property List**) or copy an existing template and set at minimum:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Z-Tix uses the camera to scan ticket QR codes and barcodes.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Z-Tix uses the photo library to set your profile picture.</string>
+</dict>
+</plist>
+```
+
+Add any additional keys your Firebase or Google Places configuration requires.
+
+### `GooglePlacesConfig` source file
+
+`AddressSearchService` references a `GooglePlacesConfig` type that supplies the Places API key. Create a Swift source file in the project (for example `Z-Tix/Core/Event/ViewModel/Google Places API/GooglePlacesConfig.swift`) with the following structure:
+
+```swift
+enum GooglePlacesConfig {
+    static let apiKey = "YOUR_GOOGLE_PLACES_API_KEY"
+}
+```
+
+Replace `YOUR_GOOGLE_PLACES_API_KEY` with the key issued in your Google Cloud Console project that has the **Places API** enabled. Do **not** commit this file.
+
+### `GoogleService-Info.plist`
+
+A `GoogleService-Info.plist` is already bundled in the repository. Confirm that it belongs to the Firebase project you intend to use and that both **Authentication** (Email/Password provider) and **Cloud Firestore** are enabled in the Firebase console.
+
+---
 
 ## Opening and running the app
 
-1. Open `Z-Tix.xcodeproj` in Xcode on macOS.
-2. Allow Xcode to resolve the Firebase Swift Package dependencies.
-3. Supply the ignored local configuration files expected by the project: `Z-Tix/Info.plist` and a target source file defining the `GooglePlacesConfig` values used by `AddressSearchService`.
-4. Confirm that the bundled `GoogleService-Info.plist` belongs to the Firebase project you intend to use and that its Authentication and Firestore services are configured.
-5. Select the `Z-Tix` scheme and run the app.
+1. Open `Z-Tix.xcodeproj` in Xcode 16 or later on macOS.
+2. Allow Xcode to resolve the Firebase Swift Package dependencies (this may take a few minutes on first open).
+3. Supply the two local configuration files described in the [Configuration](#configuration) section above.
+4. Select the `Z-Tix` scheme, choose a connected iPhone as the run destination, and press **Run** (⌘R).
 
-Use a physical iPhone for the full experience. The simulator can display most screens, but it cannot exercise the camera-based ticket scanner. Camera and photo-library permissions are requested for scanning and profile-picture selection.
+Camera and photo-library permissions are requested on first use of the scanner and profile-picture features respectively.
+
+---
 
 ## Sample ticket import
 
@@ -102,4 +191,27 @@ Use a physical iPhone for the full experience. The simulator can display most sc
 ticketCode,attendeeName,attendeeEmail,ticketType,price,status,QR Code
 ```
 
-Import the sample file from an event's ticket-import screen. Avoid importing the same CSV into the same event more than once, as the current workflow does not provide a general duplicate-import cleanup step.
+To use it:
+
+1. Create or open an event in the app.
+2. Navigate to the event's **Ticket Import** screen.
+3. Select `Test_Tix_v2.csv` from the Files picker.
+4. Confirm the import.
+
+> **Note:** Avoid importing the same CSV into the same event more than once. The current workflow does not detect or clean up duplicate imports.
+
+---
+
+## Known limitations
+
+- **Staff accounts** — `StaffUser` and the staff-user model are defined but not yet functional. The feature is planned for a future release.
+- **Upgrade screen** — the **Upgrade** (Premium) screen is a placeholder. In-app purchase logic has not been implemented.
+- **Duplicate ticket imports** — importing the same CSV file into the same event multiple times will create duplicate ticket records. There is currently no deduplication or rollback step.
+- **Camera on simulator** — the ticket scanner requires a physical iPhone camera. The iOS Simulator cannot exercise this feature.
+- **Offline write queue** — Firestore offline caching is enabled; however, scans performed without connectivity are queued and flushed when the device reconnects. Behaviour under extended offline periods has not been extensively tested.
+
+---
+
+## License
+
+This project is not currently distributed under an open-source licence. All rights reserved.
